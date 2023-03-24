@@ -1,0 +1,4 @@
+- source: presentacion_datos.qmd
+  quarto-pub:
+    - id: 31e33ef7-0468-497e-83a3-12c8d5fba1dd
+      url: 'https://quartopub.com/sites/dvilla/presentacion-de-los-datos'
