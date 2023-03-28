@@ -1,0 +1,378 @@
+---
+title: "Datos de Temperatura en Antioquia"
+author: 
+  - Daniel Villa
+  - Raquel Latorre
+  - Ivan Rojas
+  - Juan Esteban Restrepo
+format: html
+toc: true
+toc-location: left
+lang: es
+editor: source
+df-print: paged
+code-fold: true
+execute: 
+  warning: false
+tbl-colwidths: auto
+link-external-newwindow: true
+editor_options: 
+  chunk_output_type: console
+---
+
+Algunos paquetes de interés
+
+```{r, message=FALSE, warning=FALSE}
+library(geoR); library(gstat) ;library(sf);library(raster)
+library(rgdal)
+library(vegan)
+library(ade4)
+library(tidyverse)
+require(magrittr)
+library(tmaptools) # Geocodificación y visualización
+library(tidygeocoder) # Geocodificación
+library(leaflet) # Visualización 
+library(sm)
+require(gstat)
+require(MASS)
+```
+
+# Lectura de datos contorno de colombia (Archivo sp)
+
+Se descarga de la base de datos del DANE la información necesaria para tener información del contorno de Colombia. En particular, se seleccionará el municipio de Antioquia. ([https://geoportal.dane.gov.co/servicios/descarga-y-metadatos/descarga-mgn-marco-geoestadistico-nacional/](https://geoportal.dane.gov.co/servicios/descarga-y-metadatos/descarga-mgn-marco-geoestadistico-nacional/))
+
+En esta pagina, se encuentras diversos archivos en diferentes formatos espaciales. Para este caso, se utiliza la información de la pagina para crear el mapa del borde de “Colombia”.
+
+```{r}
+col <- st_read("databases/MGN_DPTO_POLITICO.shp") # Archivo de interés
+plot(col$geometry) 
+
+antioquia <- col[14,"geometry"]
+border_ant <- st_coordinates(antioquia) #matriz del sistema coordenadas
+border_ant <- as.data.frame(border_ant[,1:2])
+```
+
+**¿Que se hizo en este paso?**
+
+Bueno, la base de datos general de Colombia (que por cierto, es muy pesada) está dividida por el numero de departamentos.
+
+La fila 14 es el departamento de Antioquia y simplemente se le asigna a el vector homónimo los datos geométricos de dicho departamento.
+
+Luego, se hacen dos cosas. Primero, se gráfica los bordes del departamento y segundo, se guarda en un dataframe la información de las columnas 1 y 2. Estas columnas son el sistema de coordenadas.
+
+# Cargue base de datos de interes
+
+Sacado de : [https://swat.tamu.edu/data/](https://swat.tamu.edu/data/)
+
+La pagina suministra 2 archivos con 2 bases de datos diferentes. Una con datos de la precipitación y otro de la temperatura.
+
+Ahora, con ambas bases de datos se pueden realizar preguntas de diversos tipos.
+
+```{r}
+dt0 <- read_csv("databases/temperature.csv")
+head(dt0)
+```
+
+
+## Se escoje una fecha para trabajar
+
+Debido a que no se trabajará con problemas espacio-temporales se seleccionó de manera arbitraria una fecha. Para este ejercicio se toman los datos de la manera ya mencionada para el 2019-01-10
+
+```{r}
+dt2 <- dt0 %>% filter(date == "2019-01-10") %>% na.omit()
+```
+
+# Mapa de los puntos de extracción de la información
+
+Graficamos los puntos donde se toma la información del día seleccionado
+
+```{r}
+leaflet(antioquia) %>%
+  addPolygons(color = "red") %>% 
+  addTiles() %>% 
+  addProviderTiles(providers$CartoDB.Positron) %>% 
+  addMarkers(lng = dt2$long, lat = dt2$lat)
+```
+
+
+
+# Sobre la autocorrelacion
+Para el correcto análisis espacial es necesario probar autocorrelación espacial.
+Se procede a analizar las pruebas pertinentes.
+
+
+
+```{r}
+# Conversión de coordenadas geográficas (LongLat)
+# a coordenadas planas (UTM)
+
+datos2 <- as.matrix(data.frame(x=as.numeric(dt2$long),
+                              y=as.numeric(dt2$lat)))
+```
+
+## Creacion Dataframe Espacial
+
+
+```{r}
+x1.2 <- as.numeric(dt2$tmin)
+x2.2 <- as.numeric(dt2$tmax)
+x3.2 <- as.numeric(dt2$elev)
+df2 <- cbind(datos2, x1.2,x2.2,x3.2)
+df2 <- data.frame(df2)
+colnames(df2)<-c("X","Y", "Temp min", "Temp max", "elev")
+
+geo_temp.max2 <- as.geodata(df2, coords = 1:2, data.col = 4, borders=TRUE)
+geo_temp.max2$borders <- border_ant
+datos2.sp <- df2
+coordinates(datos2.sp) <- ~X+Y
+```
+
+**Gráfico descriptivo para observar estructura espacial:**
+
+```{r}
+points(geo_temp.max2, col = "blue3", pt.divide = "equal",
+       xlab = "Longitud", ylab = "Latitud")
+plot(geo_temp.max2, lowess=TRUE)
+```
+
+Para ver si la normalidad gráfica cambia cuando se aplica una tendencia de segundo orden:
+
+```{r}
+plot(geo_temp.max2, lowess=TRUE, trend = "2nd")
+```
+
+
+## Prueba de normalidad
+
+```{r}
+qqnorm(df2$`Temp max`, pch = 19)
+qqline(df2$`Temp max`)
+```
+
+$$
+H_0: La~temperatura~maxima~distribuye~de~forma~normal
+$$
+\\
+
+$$
+H_1: La~temperatura~maxima~NO~distribuye~de~forma~normal
+$$
+```{r}
+shapiro.test(df2$`Temp max`)
+```
+
+Dado que el valor p es de 4.955e-05, es tiene que la temperatura máxima en Antioquia registrada el 10 de Enero del 2019 no distribuye normal.
+
+Ahora probamos con otra fecha para observar si los datos realmente en todas sus fechas no se acomodan a una distribución normal.
+
+### Otros datos
+
+Suponga los datos de otra fecha (*2019-03-10*) para la temperatura máxima.
+
+**Gráfico descriptivo para observar estructura espacial:**
+
+```{r}
+dt <- dt0 %>% filter(date == "2019-03-10") %>% na.omit()
+
+# Conversión de coordenadas geográficas (LongLat)
+# a coordenadas planas (UTM)
+
+datos <- as.matrix(data.frame(x=as.numeric(dt$long),
+                              y=as.numeric(dt$lat)))
+
+x1 <- as.numeric(dt$tmin)
+x2 <- as.numeric(dt$tmax)
+x3 <- as.numeric(dt$elev)
+df <- cbind(datos, x1,x2,x3)
+df <- data.frame(df)
+colnames(df)<-c("X","Y", "Temp min", "Temp max", "elev")
+
+geo_temp.max <- as.geodata(df, coords = 1:2, data.col = 4, borders=TRUE)
+geo_temp.max$borders <- border_ant
+datos.sp <- df
+coordinates(datos.sp) <- ~X+Y
+
+plot(geo_temp.max, lowess=TRUE)
+```
+
+Prueba Visual de Normalidad
+
+```{r}
+qqnorm(df$`Temp max`, pch = 19)
+qqline(df$`Temp max`)
+
+shapiro.test(df$`Temp max`)
+```
+
+Al realizar la misma prueba de hipótesis sobre la variable de temperatura máxima pero de otra fecha se tienen datos normales.
+
+Lo que se desea enfatizar es que, a pesar de que el resultado de la primer muestra seleccionada ha rechazado el supuesto de normalidad de los datos, un fenómeno natural como la temperatura cabría esperar, por la naturaleza de su proceso, que siguiese un proceso normal. Dicha información puede ser constatada en otros artículos pero esta no es la preocupación principal del presente.
+
+Es por esto que, para este caso,se asume que a pesar de la no normalidad presentada por el test de Shapiro-Wilk, se procede con los análisis estadísticos-espaciales.
+
+A partir de este momento, se realizan análisis para dos fechas, dado que se busca demostrar las técnicas vistas en clase, se plantea entonces analizar los datos propuestos inicialmente y los datos para la fecha que si cumple los supuestos, esto con la intención de ver como la desviación de la normalidad podría afectar los resultados.
+
+
+```{r}
+distancia1 <- dist(df[,1:2], diag=TRUE, upper=TRUE)
+
+dif.temp1 <- dist(df[,4], diag=TRUE, upper=TRUE)^2
+
+distancia2 <- dist(df2[,1:2], diag=TRUE, upper=TRUE)
+
+dif.temp2 <- dist(df2[,4], diag=TRUE, upper=TRUE)^2
+```
+
+# Grafico distancia vs disimilitud
+
+```{r}
+datosmatriz1 <- data.frame(dif.prof=dif.temp1[lower.tri(dif.temp1)],
+                           distancia1=distancia1[lower.tri(distancia1)])
+
+datosmatriz2 <- data.frame(dif.prof=dif.temp2[lower.tri(dif.temp2)],
+                           distancia2=distancia2[lower.tri(distancia2)])
+
+
+par(mfrow = c(1,2))
+
+# (2019-03-10) [Normal]
+plot(x = datosmatriz1$distancia1, y = datosmatriz1$dif.prof,
+     main = "2019-03-10 (Normal)", ylab = "Diferencia en temperatura",
+     xlab = "Distancia (m)")
+abline(lm(dif.prof~distancia1, data = datosmatriz1), lwd = 2,
+       col = "red")
+
+# (2019-01-10) [NO Normal]
+plot(x = datosmatriz2$distancia2, y = datosmatriz2$dif.prof,
+     main = "2019-01-10 (No Normal)", ylab = "Diferencia en temperatura",
+     xlab = "Distancia (m)")
+abline(lm(dif.prof~distancia2, data = datosmatriz2), lwd = 2,
+       col = "red")
+```
+
+Aunque no es muy marcado, se observa que, a distancias más pequeñas, la disimilitud es más pequeña. Se podría pensar existe una autocorrelación espacial para el gráfico de la izquierda en contra parte con el gráfico de la derecha que muestra una tendencia constante sugiriendo la no correlación espacial.
+
+# Test de Mantel
+
+Se desea probar que:
+
+$$
+H_0: Hay~aleatoridad~espacial~~vs~~H_1:Hay~autocorrelación~espacial
+$$
+```{r}
+mantel(distancia1, dif.temp1, na.rm = T)
+```
+
+Según este método a una significancia de 0.05 se rechaza la hipótesis nula acerca de aleatoriedad espacial. Entonces se concluye hay autocorrelación espacial.
+
+```{r, warning=FALSE, message=FALSE}
+mantel.rtest(distancia1, dif.temp1, nrepet=999)
+```
+
+Con el test de Mantel se prueba que existe autocorrelación espacial; es decir, la temperatura es similar entre unidades geográficas próximas.
+
+## 2019-01-10 (NO-Normal)
+
+```{r, warning=FALSE, message=FALSE}
+mantel(distancia2, dif.temp2)
+mantel.rtest(distancia2, dif.temp2)
+```
+
+Lamentablemente, en las dos fechas no se cumple el test de mantel, por lo cual se dice que para el día 2019-01-10 existe evidencia para **no** autocorrelación espacial.
+
+La hipótesis de autocorrelación espacial se vio afectada por la desviación ligera de normalidad, entonces se procede a trabajar con los datos del 2019-03-10 y se analizará la temperatura máxima (si es posible también la mínima) en antioquia para la fecha seleccionada.
+
+Ahora se procede a extraer empíricamente la distancia máxima para los semivariogramas.
+
+```{r}
+resumen <- summary(geo_temp.max)
+distancia <- resumen$distances.summary
+dm <- distancia[2]/2; dm
+```
+
+Calculamos los variogramas
+
+```{r,message=FALSE, warning=FALSE}
+vario1 <- variog(geo_temp.max, option = "cloud")
+vario2 <- variog(geo_temp.max, option = "cloud", max.dist = dm)
+par(mfrow=c(1,2))
+plot(vario1, pch=21, bg="blue", lwd="black",
+     main="Variograma sin ajuste\ncon regla empírica")
+plot(vario2, pch=21, bg="red", lwd="black",
+     main="Variograma ajuste\ncon regla empírica")
+```
+
+Ambos semivariogramas refuerzan la hipótesis inicial respecto a la correlación espacial, lo anterior es fácil de observar en el gráfico de la derecha pues para distancias pequeñas la semivarianza tiene valores más pequeños que para distancias intermedias y grandes, se observa un comportamiento en alguna medida “creciente” respecto a las distancias.
+
+# Variogramas tipo bin
+
+```{r}
+bin1 <- variog(geo_temp.max,option="bin")
+bin2 <- variog(geo_temp.max,option="bin",max.dist=dm)
+
+par(mfrow=c(1,2))
+plot(bin1, pch=21, bg="blue", lwd="black",
+     main="Semivariograma sin ajuste\ncon regla empírica")
+plot(bin2, pch=21, bg="red", lwd="black",
+     main="Semivariograma ajuste\ncon regla empírica")
+```
+
+Se puede notar a simple vista que los semivariogramas no siguen una estructura de los modelos teóricos vistos. La idea será finalmente, tratar de ajustar uno con una medida aceptable para realizar predicciones.
+
+## Autocorrelacion con semivariograma
+
+```{r}
+par(mfrow = c(1,1))
+sm.variogram(datos.sp@coords, datos.sp@data$`Temp max`,model="independent",
+             ylim = c(0,70))
+```
+
+Este semivariograma apunta que no existe una fuerte autocorrelación espacial puesto que la mayoría de puntos del semivariograma están dentro de las bandas de confianza, aun así, la prueba formal ya comprobó que si existe dicha correlación.
+
+```{r}
+ini.vals1 <- c(17.79,0.7)
+fit_matern <- variofit(vario = bin2,ini.cov.pars = ini.vals1, fix.nugget =F,
+                   weights = "npairs", min="optim", nugget = 0.03)
+
+plot(bin2, pch=21, bg="blue", lwd="black",
+     main="Semivariograma con ajuste Matern")
+lines(fit_matern, lwd = 2, col = "red")
+```
+
+
+En este caso, el vector `ini.vals1` contiene dos valores iniciales para el modelo de covarianza de Matern.
+
+* El primer valor ($17.79$) se utiliza para el parámetro de rango, que determina la distancia a la cual la correlación entre los puntos de datos cae a 0.5.
+
+* El segundo valor ($0.7$) se utiliza para el parámetro de suavidad, que controla la tasa a la que disminuye la correlación a medida que aumenta la distancia entre los puntos de datos.
+
+## Modelo Exponencial
+
+```{r}
+eyefit(bin1) # exponencial siga 17.34 phi 1.48 tausq 2.17 range 4.4336
+```
+
+## Modelo Gaussiano
+
+```{r}
+eyefit(bin1)
+```
+
+
+## Modelo Cúbico 
+
+```{r}
+eyefit(bin1)
+```
+
+## Modelo Matern
+
+```{r}
+eyefit(bin1)
+```
+
+## Modelo Cauchy
+
+```{r}
+eyefit(bin1)
+```
