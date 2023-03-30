@@ -80,6 +80,7 @@ Debido a que no se trabajará con problemas espacio-temporales se seleccionó de
 
 ```{r}
 dt2 <- dt0 %>% filter(date == "2019-01-10") %>% na.omit()
+dt2 <- dt2[-c(12, 10, 11, 17, 28, 31, 29, 4, 1),]
 ```
 
 # Mapa de los puntos de extracción de la información
@@ -91,9 +92,9 @@ leaflet(antioquia) %>%
   addPolygons(color = "red") %>% 
   addTiles() %>% 
   addProviderTiles(providers$CartoDB.Positron) %>% 
-  addMarkers(lng = dt2$long, lat = dt2$lat)
+  addMarkers(lng = dt2$long, lat = dt2$lat,
+             popup = paste0("[x = ", dt2$long,", y = ", dt2$lat, "]"))
 ```
-
 
 
 # Sobre la autocorrelacion
