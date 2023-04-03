@@ -10,8 +10,6 @@ toc: true
 toc-location: left
 lang: es
 editor: source
-markdown: 
-    wrap: sentence
 df-print: paged
 code-fold: true
 execute: 
@@ -34,6 +32,8 @@ El departamento de Antioquia se encuentra ubicado en una región geográfica de 
 
 ¿Cuáles son las principales causas y consecuencias de las altas temperaturas en el departamento de Antioquia y cómo se pueden abordar desde una perspectiva de desarrollo sostenible y adaptación al cambio climático?
 
+![Fuente: Gobernación de Antioquia](images/img1.jpeg)
+
 # Caso Valle de aburrá
 
 Las altas temperaturas pueden ser explicadas a través de diversos factores, entre los que se encuentran la ubicación geográfica de la región, la presencia de grandes centros urbanos y la contaminación atmosférica. De acuerdo con estudios previos su ubicación en una cuenca rodeada por montañas, genera un efecto invernadero que aumenta la temperatura en la zona.
@@ -51,6 +51,8 @@ Además, la presencia de grandes ciudades como Medellín y el incremento de la a
 5.  Sequía: Las altas temperaturas pueden aumentar la tasa de evaporación de la humedad del suelo y los cuerpos de agua, afectado el caudal de importantes quebradas como la Iguaná y Santa Elena y lo que puede provocar sequía y escasez de agua.
 
 6.  Incendios forestales: Aumenta el riesgo de incendios forestales debido a que los materiales vegetales se vuelven más inflamables y secos en el valle de Aburrá en las zonas de interface, es decir en las zonas entre lo urbano y lo rural. En la ciudad de Medellín los sectores como Manrique (comuna 3), Villa Hermosa (comuna 8) , Robledo (Comuna 7) y Belén (comuna 16) y los Corregimientos de San Cristóbal y Altavista, que es donde se encuentra el Cerro de las Tres Cruces, en temporadas con temperatura alta tienen afectaciones de hectáreas al igual que partes altas de los barrios, donde ya se empieza a volver más rural y al igual que otros los municipios de valle de aburrá como Bello, Caldas, Envigado, Itagüí, La Estrella y Sabaneta.
+
+![Fuente: Siata](images/Siata.jpeg)
 
 El pavimento, el concreto, las canchas sintéticas, la ausencia de árboles y la pérdida de vegetación por incendios contribuyen al efecto "isla de calor", zonas donde la sensación térmica es superior. Por otro lado hay barrios donde su ubicación y su la altura en la que se encuentra, incrustado en una de las montañas laterales del valle, son zonas relativamente frías.
 
