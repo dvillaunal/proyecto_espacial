@@ -71,6 +71,7 @@ library(leaflet) # Visualización
 library(sm)
 require(gstat)
 require(MASS)
+require(gt)
 ```
 
 # Lectura de datos contorno de colombia (Archivo sp)
@@ -415,6 +416,205 @@ eyefit(bin1)
 ```{r}
 eyefit(bin1)
 ```
+
+# Krigin
+
+```{r}
+
+geo_df <- rename(df, Temperature = `Temp max`)
+geo_df$Temperature %<>% as.double()
+
+geo_df <- st_as_sf(geo_df, coords = c("X", "Y"))  %>%
+  mutate(X = st_coordinates(.)[,1],
+         Y = st_coordinates(.)[,2])
+
+```
+
+
+## Krigin Ordinario 
+
+
+```{r}
+poly <- Polygon(border_ant.utm)
+polys <- Polygons(list(poly), 1)
+sps <- SpatialPolygons(list(polys))
+plot(sps)
+```
+
+
+```{r}
+sp_df <- SpatialPolygonsDataFrame(sps, data.frame(Temperature = 35.7))
+```
+
+
+
+```{r}
+grd <- makegrid(sp_df, n = 10000)
+colnames(grd) <- c('x','y')
+grd_pts <- SpatialPoints(coords = grd, 
+                         proj4string=CRS(proj4string(sp_df)))
+
+grd_pts_in <- grd_pts[sp_df, ]
+```
+
+```{r}
+gdf <- as.data.frame(coordinates(grd_pts_in)) 
+
+ggplot(gdf) +
+  geom_point(aes(x=x,y=y))
+```
+
+```{r}
+variog2 <- variogram( Temperature ~ X+Y, data = geo_df, cutoff=dm) 
+mod_ols <- fit.variogram(variog2, model = vgm(1.48, 'Exp', 4.4336, kappa = 2.17), fit.method = 6)
+
+```
+
+##Error
+```{r, include=FALSE, eval=FALSE}
+pred_krig <- krige(geo_df$Temperature ~ X + Y, locations = geo_df,
+      newdata = gdf, model = mod_ols)
+```
+
+
+
+## Krigin Universal 
+
+
+```{r}
+ggplot(antioquia) +
+  geom_sf() +
+  geom_sf(data = geo_df, aes(col = Temperature))+
+  theme_bw()
+```
+
+```{r}
+geodist <- dist(as.data.frame(geo_df)[,5:6], diag = TRUE, upper = TRUE)
+dist.temp <- dist(as.data.frame(geo_df)[,2], diag = TRUE, upper = TRUE)^2
+mantel <- mantel(geodist, dist.temp)
+
+normalidad <- shapiro.test(geo_df$Temperature)
+
+test <- data.frame(Test = c('Shapiro-Wilk', 'Mantel'),
+                   'p-value' = c(round(normalidad$p.value, 3),
+                                 round(mantel$signif, 3)))
+test %>% gt()
+```
+
+```{r}
+variograma <- variogram(Temperature ~ X + Y, data = geo_df)
+
+plot(variograma, main = 'Semivariograma empírico')
+```
+
+
+# Semivariograma teórico
+## MCO
+
+```{r}
+ols <- fit.variogram(variograma, fit.method = 6,
+                     model = vgm(model = c('Sph', 'Exp', 'Gau', 'Mat')))
+
+plot(variograma, ols)
+```
+
+## Semivariograma Exponencial - RML 
+```{r}
+rml <- fit.variogram.reml(Temperature ~ X + Y, data = as_Spatial(geo_df),
+                           model = vgm(1.48, 'Exp', 4.4336, kappa = 2.17))
+
+plot(variograma, rml)
+```
+
+```{r}
+grilla <- st_make_grid(x = antioquia, cellsize = 1) %>%
+  st_centroid() %>%
+  st_as_sf() %>%
+  rename(geometry = x) %>%
+  mutate(X = st_coordinates(.)[,1], Y= st_coordinates(.)[,2])
+
+grafico <- function(bd, variable){
+  ggplot(bd) +
+    geom_sf(data = antioquia) +
+    geom_sf(aes(color = {{ variable }})) +
+    theme_bw()
+}
+```
+
+```{r}
+kriging.ols <- krige(geo_df$Temperature ~ X + Y, locations = geo_df,
+      newdata = grilla, model = ols)
+```
+
+```{r}
+res <- kriging.ols %>%
+  st_intersection(antioquia)
+
+grafico(res, var1.pred)
+grafico(res, var1.var)
+```
+
+
+```{r}
+kriging.rml <- krige(geo_df$Temperature ~ X + Y, locations = geo_df,
+      newdata = grilla, model = rml)
+```
+
+
+```{r}
+res2 <- kriging.rml %>%
+  st_intersection(antioquia)
+```
+
+```{r}
+grafico(res2, var1.pred)
+grafico(res2, var1.var)
+```
+
+
+## Validación cruzada
+
+```{r}
+cv.ols <- krige.cv(formula = Temperature~X+Y,
+               locations = geo_df,
+               model = ols,
+               nfold = 10)
+cv.ols
+```
+
+### RMSE
+```{r}
+round(sqrt(mean(cv.ols$residual^2)), 2)
+```
+
+
+### MAE
+```{r}
+round(mean(abs(cv.ols$residual)), 2)
+```
+
+
+
+
+
+```{r}
+cv.rml <- krige.cv(formula = Temperature~X+Y,
+               locations = geo_df,
+               model = rml,
+               nfold = 10)
+cv.rml
+```
+
+### RMSE
+```{r}
+round(sqrt(mean(cv.rml$residual^2)), 2)
+```
+
+### MAE
+```{r}
+round(mean(abs(cv.rml$residual)), 2)
+```
+
 
 ## Referencias
 
