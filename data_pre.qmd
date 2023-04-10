@@ -11,7 +11,11 @@ toc-location: left
 lang: es
 editor: source
 df-print: paged
-code-fold: true
+code-fold: show
+code-tools:
+  source: false
+  toggle: true
+  caption: none
 execute: 
   warning: false
 tbl-colwidths: auto
@@ -72,6 +76,7 @@ library(sm)
 require(gstat)
 require(MASS)
 require(gt)
+set.seed(1231)
 ```
 
 # Lectura de datos contorno de colombia (Archivo sp)
@@ -202,6 +207,7 @@ Suponga los datos de otra fecha (*2019-03-10*) para la temperatura máxima.
 
 ```{r}
 dt <- dt0 %>% filter(date == "2019-03-10") %>% na.omit()
+dt <- dt[-c(12, 10, 11, 17, 28, 31, 29, 4, 1),]
 
 datos <- as.matrix(data.frame(x=as.numeric(dt$long),
                               y=as.numeric(dt$lat)))
@@ -286,7 +292,7 @@ abline(lm(dif.prof~distancia1, data = datosmatriz1), lwd = 2,
 # (2019-01-10) [NO Normal]
 plot(x = datosmatriz2$distancia2, y = datosmatriz2$dif.prof,
      main = "2019-01-10 (No Normal)", ylab = "Diferencia en temperatura",
-     xlab = "Distancia (m)")
+     xlab = "Distancia (m/100k)")
 abline(lm(dif.prof~distancia2, data = datosmatriz2), lwd = 2,
        col = "red")
 ```
@@ -327,7 +333,7 @@ La hipótesis de autocorrelación espacial se vio afectada por la desviación li
 Ahora se procede a extraer empíricamente la distancia máxima para los semivariogramas.
 
 ```{r}
-resumen <- summary(geo_temp.max)
+resumen <- summary(geo_temp.max.utm)
 distancia <- resumen$distances.summary
 dm <- distancia[2]/2; dm
 ```
@@ -335,8 +341,8 @@ dm <- distancia[2]/2; dm
 Calculamos los variogramas
 
 ```{r,message=FALSE, warning=FALSE}
-vario1 <- variog(geo_temp.max, option = "cloud")
-vario2 <- variog(geo_temp.max, option = "cloud", max.dist = dm)
+vario1 <- variog(geo_temp.max.utm, option = "cloud")
+vario2 <- variog(geo_temp.max.utm, option = "cloud", max.dist = dm)
 par(mfrow=c(1,2))
 plot(vario1, pch=21, bg="blue", lwd="black",
      main="Variograma sin ajuste\ncon regla empírica")
@@ -349,8 +355,8 @@ Ambos semivariogramas refuerzan la hipótesis inicial respecto a la correlación
 # Variogramas tipo bin
 
 ```{r}
-bin1 <- variog(geo_temp.max,option="bin")
-bin2 <- variog(geo_temp.max,option="bin",max.dist=dm)
+bin1 <- variog(geo_temp.max.utm,option="bin")
+bin2 <- variog(geo_temp.max.utm,option="bin",max.dist=dm)
 
 par(mfrow=c(1,2))
 plot(bin1, pch=21, bg="blue", lwd="black",
@@ -365,16 +371,17 @@ Se puede notar a simple vista que los semivariogramas no siguen una estructura d
 
 ```{r}
 par(mfrow = c(1,1))
-sm.variogram(datos.sp@coords, datos.sp@data$`Temp max`,model="independent",
+sm.variogram(datos.sp.utm@coords,
+             datos.sp.utm@data$`Temp max`,model="independent",
              ylim = c(0,70))
 ```
 
 Este semivariograma apunta que no existe una fuerte autocorrelación espacial puesto que la mayoría de puntos del semivariograma están dentro de las bandas de confianza, aun así, la prueba formal ya comprobó que si existe dicha correlación.
 
 ```{r}
-ini.vals1 <- c(17.79,0.7)
-fit_matern <- variofit(vario = bin2,ini.cov.pars = ini.vals1, fix.nugget =F,
-                   weights = "npairs", min="optim", nugget = 0.03)
+ini.vals1 <- c(10.5,168500)
+fit_matern <- variofit(vario = bin2,ini.cov.pars = ini.vals1, fix.nugget =T,
+                   weights = "npairs", min="optim", nugget = 0)
 
 plot(bin2, pch=21, bg="blue", lwd="black",
      main="Semivariograma con ajuste Matern")
@@ -383,238 +390,94 @@ lines(fit_matern, lwd = 2, col = "red")
 
 En este caso, el vector `ini.vals1` contiene dos valores iniciales para el modelo de covarianza de Matern.
 
--   El primer valor ($17.79$) se utiliza para el parámetro de rango, que determina la distancia a la cual la correlación entre los puntos de datos cae a 0.5.
+-   El segundo valor ($168500$) se utiliza para el parámetro de rango, que determina la distancia a la cual la correlación entre los puntos de datos cae a 0.5.
 
--   El segundo valor ($0.7$) se utiliza para el parámetro de suavidad, que controla la tasa a la que disminuye la correlación a medida que aumenta la distancia entre los puntos de datos.
+-   El primer valor ($10.5$) se utiliza para el parámetro de sill, que controla la tasa a la que disminuye la correlación a medida que aumenta la distancia entre los puntos de datos.
 
-## Modelo Exponencial
-
-```{r}
-eyefit(bin1) # exponencial siga 17.34 phi 1.48 tausq 2.17 range 4.4336
-```
-
-## Modelo Gaussiano
+# Kriging
 
 ```{r}
-eyefit(bin1)
-```
-
-## Modelo Cúbico
-
-```{r}
-eyefit(bin1)
-```
-
-## Modelo Matern
-
-```{r}
-eyefit(bin1)
-```
-
-## Modelo Cauchy
-
-```{r}
-eyefit(bin1)
-```
-
-# Krigin
-
-```{r}
-
+# Creación de nuevas bases de datos con la libreria sp
 geo_df <- rename(df, Temperature = `Temp max`)
 geo_df$Temperature %<>% as.double()
 
-geo_df <- st_as_sf(geo_df, coords = c("X", "Y"))  %>%
-  mutate(X = st_coordinates(.)[,1],
-         Y = st_coordinates(.)[,2])
+geo_df2 <- geo_df
+coordinates(geo_df2) <- ~X+Y
 
+geo_df <- as.geodata(geo_df, coords = 1:2, var = 4)
 ```
 
+:::{.panel-tabset}
+## Kriging Ordinario 
 
-## Krigin Ordinario 
-
-
-```{r}
-poly <- Polygon(border_ant.utm)
+```{r collapse=FALSE}
+# Creación de las geometrías
+poly <- Polygon(border_ant)
 polys <- Polygons(list(poly), 1)
 sps <- SpatialPolygons(list(polys))
-plot(sps)
-```
 
-
-```{r}
+# Creación de los datos espaciales
 sp_df <- SpatialPolygonsDataFrame(sps, data.frame(Temperature = 35.7))
-```
 
-
-
-```{r}
+# Creación de la maya con 10.000 puntos
 grd <- makegrid(sp_df, n = 10000)
-colnames(grd) <- c('x','y')
+grd.ko <- as.data.frame(grd)
+colnames(grd) <- c('X','Y')
 grd_pts <- SpatialPoints(coords = grd, 
                          proj4string=CRS(proj4string(sp_df)))
 
 grd_pts_in <- grd_pts[sp_df, ]
-```
-
-```{r}
 gdf <- as.data.frame(coordinates(grd_pts_in)) 
 
 ggplot(gdf) +
-  geom_point(aes(x=x,y=y))
+  geom_point(aes(x=X,y=Y))+
+  labs(title = "Malla de 10k puntos",
+       subtitle = "Para hacer interpolación espacial")+
+  theme_bw()
+
+# Nueva regla empirica
+resumen <- summary(geo_temp.max)
+distancia <- resumen$distances.summary
+dm <- distancia[2]/2
+
+# Ajustes del variograma con un modelo Matern
+variog2 <- variogram(Temperature ~ X+Y, data = geo_df2, cutoff=dm) 
+mod_ols <- fit.variogram(variog2,
+                         model = vgm(psill=10.3, 'Mat',
+                                     range = 1.68, kappa = 0.5),
+                         fit.method = 6)
+
+# Kriging Ordinario en GeoR
+pred_krig <- krige.conv(geo_df, locations = grd.ko,
+                        borders = border_ant@coords,
+                        krige = krige.control(nugget = 3.8,
+                                              cov.pars = c(sigmasq = 10.3,
+                                                           phi = 1.68)))
 ```
 
 ```{r}
-variog2 <- variogram( Temperature ~ X+Y, data = geo_df, cutoff=dm) 
-mod_ols <- fit.variogram(variog2, model = vgm(1.48, 'Exp', 4.4336, kappa = 2.17), fit.method = 6)
-
+plot(border_ant@coords, main = "Kriging ordinario",
+     xlab = "Longitud", ylab = "Latitud", pch = '-')
+image(pred_krig, add=TRUE)
+contour(pred_krig, add= TRUE, drawlabels = TRUE)
 ```
-
-##Error
-```{r, include=FALSE, eval=FALSE}
-pred_krig <- krige(geo_df$Temperature ~ X + Y, locations = geo_df,
-      newdata = gdf, model = mod_ols)
-```
-
-
 
 ## Krigin Universal 
 
-
 ```{r}
-ggplot(antioquia) +
-  geom_sf() +
-  geom_sf(data = geo_df, aes(col = Temperature))+
+# Grafico de los datos reales en antioquia
+ggplot(data.frame(cbind(geo_temp.max$coords,
+                        Temp.Max = geo_temp.max$data)))+
+  geom_point(aes(X,Y, color = Temp.Max), size = 2)+
+  coord_fixed(ratio =1)+
+  scale_color_gradient(low = 'blue', high = 'orange')+
+  geom_path(data = data.frame(geo_temp.max$border),
+            aes(X,Y))+
+  labs(title = "Datos de la temperatura maxima en Antioquia",
+       subtitle = "Con su escala de color en grados celsius (C°)")+
   theme_bw()
 ```
-
-```{r}
-geodist <- dist(as.data.frame(geo_df)[,5:6], diag = TRUE, upper = TRUE)
-dist.temp <- dist(as.data.frame(geo_df)[,2], diag = TRUE, upper = TRUE)^2
-mantel <- mantel(geodist, dist.temp)
-
-normalidad <- shapiro.test(geo_df$Temperature)
-
-test <- data.frame(Test = c('Shapiro-Wilk', 'Mantel'),
-                   'p-value' = c(round(normalidad$p.value, 3),
-                                 round(mantel$signif, 3)))
-test %>% gt()
-```
-
-```{r}
-variograma <- variogram(Temperature ~ X + Y, data = geo_df)
-
-plot(variograma, main = 'Semivariograma empírico')
-```
-
-
-# Semivariograma teórico
-## MCO
-
-```{r}
-ols <- fit.variogram(variograma, fit.method = 6,
-                     model = vgm(model = c('Sph', 'Exp', 'Gau', 'Mat')))
-
-plot(variograma, ols)
-```
-
-## Semivariograma Exponencial - RML 
-```{r}
-rml <- fit.variogram.reml(Temperature ~ X + Y, data = as_Spatial(geo_df),
-                           model = vgm(1.48, 'Exp', 4.4336, kappa = 2.17))
-
-plot(variograma, rml)
-```
-
-```{r}
-grilla <- st_make_grid(x = antioquia, cellsize = 1) %>%
-  st_centroid() %>%
-  st_as_sf() %>%
-  rename(geometry = x) %>%
-  mutate(X = st_coordinates(.)[,1], Y= st_coordinates(.)[,2])
-
-grafico <- function(bd, variable){
-  ggplot(bd) +
-    geom_sf(data = antioquia) +
-    geom_sf(aes(color = {{ variable }})) +
-    theme_bw()
-}
-```
-
-```{r}
-kriging.ols <- krige(geo_df$Temperature ~ X + Y, locations = geo_df,
-      newdata = grilla, model = ols)
-```
-
-```{r}
-res <- kriging.ols %>%
-  st_intersection(antioquia)
-
-grafico(res, var1.pred)
-grafico(res, var1.var)
-```
-
-
-```{r}
-kriging.rml <- krige(geo_df$Temperature ~ X + Y, locations = geo_df,
-      newdata = grilla, model = rml)
-```
-
-
-```{r}
-res2 <- kriging.rml %>%
-  st_intersection(antioquia)
-```
-
-```{r}
-grafico(res2, var1.pred)
-grafico(res2, var1.var)
-```
-
-
-## Validación cruzada
-
-```{r}
-cv.ols <- krige.cv(formula = Temperature~X+Y,
-               locations = geo_df,
-               model = ols,
-               nfold = 10)
-cv.ols
-```
-
-### RMSE
-```{r}
-round(sqrt(mean(cv.ols$residual^2)), 2)
-```
-
-
-### MAE
-```{r}
-round(mean(abs(cv.ols$residual)), 2)
-```
-
-
-
-
-
-```{r}
-cv.rml <- krige.cv(formula = Temperature~X+Y,
-               locations = geo_df,
-               model = rml,
-               nfold = 10)
-cv.rml
-```
-
-### RMSE
-```{r}
-round(sqrt(mean(cv.rml$residual^2)), 2)
-```
-
-### MAE
-```{r}
-round(mean(abs(cv.rml$residual)), 2)
-```
-
+:::
 
 ## Referencias
 
@@ -649,3 +512,5 @@ round(mean(abs(cv.rml$residual)), 2)
 \
 
 \
+
+
