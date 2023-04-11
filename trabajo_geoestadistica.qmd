@@ -32,6 +32,8 @@ Antioquia es un departamento con diversidad geográfica y climática, que se car
 
 El departamento de Antioquia se encuentra ubicado en una región geográfica de Colombia conocida como la Cordillera de los Andes, y se caracteriza por presentar una gran diversidad climática y topográfica. En términos generales, la región presenta temperaturas cálidas durante la mayor parte del año, con una media anual de 24°C. Sin embargo, en los últimos años se ha observado un aumento en la frecuencia y la intensidad de las olas de calor en Antioquia, lo que ha generado preocupación entre los habitantes y las autoridades locales. Estas altas temperaturas pueden tener efectos negativos sobre la salud humana, la agricultura, la ganadería, la biodiversidad y otros aspectos clave del desarrollo económico y social de la región. Desde el punto de vista climático, este fenómeno puede estar relacionado con factores como el cambio climático, la variabilidad natural del clima y la interacción entre la atmósfera y la topografía local. En este sentido, diversos estudios científicos han analizado la evolución de las temperaturas en Antioquia y sus posibles causas. Estudios realizados por la Universidad de Antioquia y la gobernación de Antioquia se evidenció un aumento de la temperatura promedio en todo el departamento, con aumentos máximos cercanos a los 3 °C y mínimos de 0.5 °C. Las subregiones de Urabá, Bajo Cauca y Magdalena Medio es donde se espera aumente en mayor medida la temperatura media (3 °C), destacando que actualmente es en estas subregiones donde se presenta la mayor temperatura media. Para el Valle de Aburrá, se espera aumentos cercanos entre 2.1 °C y 2.2 °C, lo que sugiere un patrón de calentamiento a largo plazo. Otros estudios han señalado la En términos de las implicaciones para la sociedad, es importante destacar que las altas temperaturas pueden tener efectos negativos sobre la salud humana, especialmente en grupos vulnerables como los niños, los ancianos y las personas con enfermedades crónicas. Sin embargo, además de estos factores, también existe otro que es particularmente preocupante en Antioquia, la minería ilegal. Esta actividad se ha convertido en una práctica recurrente en la región, lo que ha generado un impacto negativo tanto en el medio ambiente como en la salud de las comunidades locales. La minería ilegal implica la extracción de minerales sin cumplir con las normas ambientales y sociales necesarias para garantizar la sostenibilidad de la actividad. Como resultado, se generan graves daños ambientales, como la deforestación, la contaminación del agua y la degradación del suelo. Estos impactos ambientales pueden tener consecuencias negativas para el clima de la región, lo que se traduce en un aumento de las temperaturas. Además, las olas de calor pueden afectar la productividad de los trabajadores y generar mayores costos en el sector de la salud. En el ámbito agrícola, las altas temperaturas pueden reducir el rendimiento de los cultivos y afectar la calidad de los alimentos. Por último, el aumento de las temperaturas puede tener impactos negativos sobre la biodiversidad, ya que muchas especies animales y vegetales dependen de condiciones climáticas específicas para su supervivencia.
 
+> **Nota**: Se observa que alrededor de 10 estaciones no se encuentran ubicadas en el departamento de Antioquia, igual se tomaron en cuenta puesto que la temperatura de las regiones alrededor del departamento influye en la temperatura máxima registrada en la fecha seleccionada, es necesario estas estaciones debido a que ayudan a la realización de las predicciones en las regiones no muestreadas. 
+
 # Pregunta de investigación:
 
 ¿Cuáles son las principales causas y consecuencias de las altas temperaturas en el departamento de Antioquia y cómo se pueden abordar desde una perspectiva de desarrollo sostenible y adaptación al cambio climático?
@@ -222,7 +224,7 @@ colnames(df)<-c("X","Y", "Temp min", "Temp max", "elev")
 geo_temp.max <- as.geodata(df, coords = 1:2, data.col = 4, borders=TRUE)
 geo_temp.max$borders <- border_ant
 
-plot(geo_temp.max, lowess=TRUE)
+plot(geo_temp.max, lowess=TRUE, trend = "2nd")
 
 # Conversión de coordenadas geográficas (LongLat)
 # a coordenadas planas (UTM)
@@ -238,7 +240,7 @@ border_ant.utm <- spTransform(border_ant, CRS("+init=epsg:9377"))
 geo_temp.max.utm <- datos.sp.utm %>% as.data.frame() %>%  as.geodata(., coords = 4:5, data.col = 2, borders=TRUE)
 geo_temp.max.utm$borders <- border_ant.utm %>% as.data.frame()
 
-plot(geo_temp.max.utm, lowess=TRUE)
+plot(geo_temp.max.utm, lowess=TRUE, trend = "2nd")
 ```
 
 Prueba Visual de Normalidad
@@ -349,7 +351,7 @@ plot(vario1, pch=21, bg="blue", lwd="black",
 plot(vario2, pch=21, bg="red", lwd="black",
      main="Variograma ajuste\ncon regla empírica")
 ```
-
+trend.l
 Ambos semivariogramas refuerzan la hipótesis inicial respecto a la correlación espacial, lo anterior es fácil de observar en el gráfico de la derecha pues para distancias pequeñas la semivarianza tiene valores más pequeños que para distancias intermedias y grandes, se observa un comportamiento en alguna medida "creciente" respecto a las distancias.
 
 # Variogramas tipo bin
@@ -394,23 +396,23 @@ En este caso, el vector `ini.vals1` contiene dos valores iniciales para el model
 
 -   El primer valor ($10.5$) se utiliza para el parámetro de sill, que controla la tasa a la que disminuye la correlación a medida que aumenta la distancia entre los puntos de datos.
 
-# Kriging
+# Predicción Espacial
 
 ```{r}
+# Nueva regla empirica
+resumen2 <- summary(geo_temp.max)
+distancia2 <- resumen2$distances.summary
+dm2 <- distancia2[2]/2
+
 # Creación de nuevas bases de datos con la libreria sp
 geo_df <- rename(df, Temperature = `Temp max`)
-geo_df$Temperature %<>% as.double()
 
-geo_df2 <- geo_df
+geo_df2 <- data.frame(geo_df)
+geo_df3 <- data.frame(geo_df)
 coordinates(geo_df2) <- ~X+Y
 
 geo_df <- as.geodata(geo_df, coords = 1:2, var = 4)
-```
 
-:::{.panel-tabset}
-## Kriging Ordinario 
-
-```{r collapse=FALSE}
 # Creación de las geometrías
 poly <- Polygon(border_ant)
 polys <- Polygons(list(poly), 1)
@@ -434,25 +436,26 @@ ggplot(gdf) +
   labs(title = "Malla de 10k puntos",
        subtitle = "Para hacer interpolación espacial")+
   theme_bw()
+```
 
-# Nueva regla empirica
-resumen <- summary(geo_temp.max)
-distancia <- resumen$distances.summary
-dm <- distancia[2]/2
+:::{.panel-tabset}
+## Kriging Ordinario 
 
-# Ajustes del variograma con un modelo Matern
-variog2 <- variogram(Temperature ~ X+Y, data = geo_df2, cutoff=dm) 
-mod_ols <- fit.variogram(variog2,
-                         model = vgm(psill=10.3, 'Mat',
-                                     range = 1.68, kappa = 0.5),
-                         fit.method = 6)
+```{r collapse=FALSE}
+## Ajuste del varigrama en GeoR con un modelo matern
+variog1 <- variog(geo_df, option="bin", max.dist=dm2)
+
+mod_ols1 <- variofit(variog1, ini.cov.pars = c(11.3, 1.6),
+                     fix.nugget =T,weights = "npairs", 
+                     min="optim", nugget = 0)
 
 # Kriging Ordinario en GeoR
 pred_krig <- krige.conv(geo_df, locations = grd.ko,
                         borders = border_ant@coords,
-                        krige = krige.control(nugget = 3.8,
-                                              cov.pars = c(sigmasq = 10.3,
-                                                           phi = 1.68)))
+                        krige = krige.control(nugget = 0.03, trend.d = "2nd",
+                                              trend.l = "2nd",
+                                              cov.pars = c(sigmasq = 3.9,
+                                                           phi = 1.6)))
 ```
 
 ```{r}
@@ -461,6 +464,44 @@ plot(border_ant@coords, main = "Kriging ordinario",
 image(pred_krig, add=TRUE)
 contour(pred_krig, add= TRUE, drawlabels = TRUE)
 ```
+
+La influencia del mar y ríos en la temperatura es un factor importante a tener en cuenta
+en las regiones, debido a que el agua tiene una mayor capacidad
+térmica que la tierra, tiende a retener el calor durante más tiempo y liberarlo de
+manera más gradual. Esto puede resultar en temperaturas más suaves y moderadas en 
+comparación con las áreas continentales cercanas. Además, la altitud del nivel del 
+mar también puede tener un efecto en la temperatura. 
+En general, a mayor altitud sobre el nivel del mar, las temperaturas tienden a
+disminuir debido a la disminución de la presión atmosférica y la menor retención de 
+calor en la atmósfera. Por lo tanto, en regiones situadas a menor altitud sobre el
+nivel del mar, como las zonas costeras, es posible que se experimenten temperaturas
+más altas en comparación con áreas más elevadas. Sin embargo, es importante tener en cuenta que otros factores también pueden influir en las temperaturas, como la latitud, la dirección y fuerza de los vientos, la presencia de corrientes marinas, la cobertura nubosa, la vegetación y la 
+urbanización, entre otros. Por lo tanto, es necesario realizar un análisis detallado
+y considerar múltiples variables para comprender completamente la influencia del
+mar y el nivel del mar en las temperaturas en una región específica.
+
+### Varianza de la predicción
+
+```{r}
+plot(border_ant@coords, main = "Varianza (kriging ordinario)",
+     xlab = "Longitud", ylab = "Latitud", pch = '-')
+image(pred_krig, values = sqrt(pred_krig$krige.var),add=TRUE)
+contour(pred_krig, values = sqrt(pred_krig$krige.var), add= TRUE,
+        drawlabels = TRUE)
+```
+
+### Validación Cruzada
+
+```{r}
+valid.krigo <- xvalid(geo_temp.max, model = mod_ols1)
+summary(valid.krigo)
+```
+
+```{r}
+#| layout-ncol: 2
+plot(valid.krigo)
+```
+
 
 ## Krigin Universal 
 
@@ -476,7 +517,55 @@ ggplot(data.frame(cbind(geo_temp.max$coords,
   labs(title = "Datos de la temperatura maxima en Antioquia",
        subtitle = "Con su escala de color en grados celsius (C°)")+
   theme_bw()
+
+variog2 <- variogram(Temperature ~ X+Y, data = geo_df2, cutoff = dm2)
+mod_ols2 <- fit.variogram(variog2,
+                          model = vgm(model = "Exp", psill = 11.3,
+                                      range = 1.6),fit.method = 6)
+
+
+# Crear un nuevo objeto SpatialPixelsDataFrame con las mismas coordenadas que grd.ko
+
+pred_krigu <- krige(Temperature ~X+Y, ~X+Y, geo_df3, gdf,
+                    model = mod_ols2)
+
+
+
+# Puntos de medición para el grafico de predicción
+puntos_medicion <- SpatialPoints(coords = geo_df3[,1:2],
+                                 proj4string = CRS(proj4string(sp_df)))
+
+# Grafico de la interpolación espacial con kriging universal
+p <- ggplot(aes(X,Y), data = pred_krigu)+
+  geom_point(aes(color = var1.pred))+
+  geom_point(aes(X,Y), data = geo_df3)+
+  geom_polygon(aes(X,Y), fill = NA, color = "black",
+               data = as.data.frame(border_ant@coords))+
+  scale_color_gradient(low = "blue", high = "orange")+
+  labs(title = "Predicciones con Kriging Universal",
+     y = "latitud", x = "longitud", color = "C°")+
+  theme_bw()
+
+p
 ```
+
+### Varianza de la predicción
+
+```{r}
+p <- ggplot(aes(X,Y), data = pred_krigu)+
+  geom_point(aes(color = var1.var))+
+  geom_point(aes(X,Y), data = geo_df3)+
+  geom_polygon(aes(X,Y), fill = NA, color = "black",
+               data = as.data.frame(border_ant@coords))+
+  scale_color_gradient(low = "blue", high = "orange")+
+  labs(title = "Predicciones con Kriging Universal",
+     y = "latitud", x = "longitud", color = "C°")+
+  theme_bw()
+
+p
+```
+
+
 :::
 
 ## Referencias
