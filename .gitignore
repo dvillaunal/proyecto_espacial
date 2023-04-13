@@ -1,2 +1,6 @@
 
 .Rproj.user
+
+# Cache files
+data_pre_cache/
+data_pre_files/
