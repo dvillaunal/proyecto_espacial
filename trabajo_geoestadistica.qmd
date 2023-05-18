@@ -196,18 +196,18 @@ $$
 shapiro.test(df2$`Temp max`)
 ```
 
-Dado que el valor p es de 4.955e-05, es tiene que la temperatura máxima en Antioquia registrada el 10 de Enero del 2019 no distribuye normal.
+Dado que el valor p es de 0.04583, es tiene que la temperatura máxima en Antioquia registrada el 10 de Enero del 2019 no distribuye normal.
 
 Ahora probamos con otra fecha para observar si los datos realmente en todas sus fechas no se acomodan a una distribución normal.
 
 ### Otros datos
 
-Suponga los datos de otra fecha (*2019-03-10*) para la temperatura máxima.
+Suponga los datos de otra fecha (*2019-10-21*) para la temperatura máxima.
 
 **Gráfico descriptivo para observar estructura espacial:**
 
 ```{r}
-dt <- dt0 %>% filter(date == "2019-03-10") %>% na.omit()
+dt <- dt0 %>% filter(date == "2019-10-21") %>% na.omit()
 dt <- dt[-c(12, 10, 11, 17, 28, 31, 29, 4, 1),]
 
 datos <- as.matrix(data.frame(x=as.numeric(dt$long),
@@ -283,9 +283,9 @@ datosmatriz2 <- data.frame(dif.prof=dif.temp2[lower.tri(dif.temp2)],
 
 par(mfrow = c(1,2))
 
-# (2019-03-10) [Normal]
+# (2019-10-21) [Normal]
 plot(x = datosmatriz1$distancia1, y = datosmatriz1$dif.prof,
-     main = "2019-03-10 (Normal)", ylab = "Diferencia en temperatura",
+     main = "2019-10-21 (Normal)", ylab = "Diferencia en temperatura",
      xlab = "Distancia (m)")
 abline(lm(dif.prof~distancia1, data = datosmatriz1), lwd = 2,
        col = "red")
@@ -327,9 +327,9 @@ mantel(distancia2, dif.temp2)
 mantel.rtest(distancia2, dif.temp2)
 ```
 
-Lamentablemente, en las dos fechas no se cumple el test de mantel, por lo cual se dice que para el día 2019-01-10 existe evidencia para **no** autocorrelación espacial.
+Lamentablemente, en las dos pruebas no se cumple el test de mantel, por lo cual se dice que para el día 2019-01-10 existe evidencia para **no** autocorrelación espacial.
 
-La hipótesis de autocorrelación espacial se vio afectada por la desviación ligera de normalidad, entonces se procede a trabajar con los datos del 2019-03-10 y se analizará la temperatura máxima (si es posible también la mínima) en antioquia para la fecha seleccionada.
+La hipótesis de autocorrelación espacial se vio afectada por la desviación ligera de normalidad, entonces se procede a trabajar con los datos del 2019-10-21 y se analizará la temperatura máxima (si es posible también la mínima) en antioquia para la fecha seleccionada.
 
 Ahora se procede a extraer empíricamente la distancia máxima para los semivariogramas.
 
@@ -500,6 +500,16 @@ summary(valid.krigo)
 #| layout-ncol: 2
 plot(valid.krigo)
 ```
+
+Según los resultados de la validación cruzada, se pueden sacar las siguientes conclusiones:
+
+* **Sesgo (Mean):** El sesgo promedio es de aproximadamente 0.134, lo que indica que, en promedio, el modelo de kriging ordinario tiende a sobreestimar ligeramente los valores de temperatura.
+
+* **Error cuadrático medio (RMSE, sd):** El error cuadrático medio es de aproximadamente 2.024, lo que indica la discrepancia promedio entre los valores observados y los valores predichos por el modelo. Un RMSE más bajo indica una mejor precisión del modelo.
+
+* **Distribución de errores:** Los errores en la validación cruzada varían desde -3.676 hasta 4.014. Los errores negativos indican que el modelo subestima la temperatura, mientras que los errores positivos indican sobreestimación. El rango y la desviación estándar (sd) de los errores muestran la dispersión de los errores en el conjunto de datos de validación.
+
+En general, los resultados de la validación cruzada indican que el modelo de kriging ordinario tiene cierto sesgo hacia la sobreestimación y muestra una discrepancia promedio de alrededor de 2.024 entre los valores observados y los valores predichos.
 
 
 ## Krigin Universal 
