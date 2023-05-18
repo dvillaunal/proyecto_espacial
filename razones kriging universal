@@ -1,0 +1,7 @@
+###### Conclusiones de porque el Kriging universal ganó como mejor modelo. ######
+
+1. Validación cruzada: La validación cruzada es una técnica comúnmente utilizada para evaluar el rendimiento de los métodos de interpolación. Al realizar la validación cruzada con los datos disponibles, el Kriging Universal mostró un menor error medio cuadrático en comparación con el Kriging Ordinario. Esto indica que el Kriging Universal tiene un mejor rendimiento en la predicción de los valores desconocidos.
+
+2. Varianza: Además del error medio cuadrático, también se evaluó la varianza de los errores de predicción. El Kriging Universal demostró una menor varianza en comparación con el Kriging Ordinario. Una menor varianza indica una mayor precisión en las predicciones y una menor incertidumbre asociada a los valores interpolados.
+
+3. Flexibilidad: El Kriging Universal ofrece una mayor flexibilidad al permitir la incorporación de una tendencia global en el modelo de interpolación. Esto significa que se pueden considerar efectos de tendencia o patrones espaciales globales en los datos, lo que puede mejorar aún más la precisión de las predicciones.
