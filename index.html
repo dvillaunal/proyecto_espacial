@@ -398,16 +398,16 @@ data:  df2$`Temp max`
 W = 0.90931, p-value = 0.04583</code></pre>
 </div>
 </div>
-<p>Dado que el valor p es de 4.955e-05, es tiene que la temperatura máxima en Antioquia registrada el 10 de Enero del 2019 no distribuye normal.</p>
+<p>Dado que el valor p es de 0.04583, es tiene que la temperatura máxima en Antioquia registrada el 10 de Enero del 2019 no distribuye normal.</p>
 <p>Ahora probamos con otra fecha para observar si los datos realmente en todas sus fechas no se acomodan a una distribución normal.</p>
 <section id="otros-datos" class="level3">
 <h3 class="anchored" data-anchor-id="otros-datos">Otros datos</h3>
-<p>Suponga los datos de otra fecha (<em>2019-03-10</em>) para la temperatura máxima.</p>
+<p>Suponga los datos de otra fecha (<em>2019-10-21</em>) para la temperatura máxima.</p>
 <p><strong>Gráfico descriptivo para observar estructura espacial:</strong></p>
 <div class="cell">
 <details open="">
 <summary>Código</summary>
-<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>dt <span class="ot">&lt;-</span> dt0 <span class="sc">%&gt;%</span> <span class="fu">filter</span>(date <span class="sc">==</span> <span class="st">"2019-03-10"</span>) <span class="sc">%&gt;%</span> <span class="fu">na.omit</span>()</span>
+<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>dt <span class="ot">&lt;-</span> dt0 <span class="sc">%&gt;%</span> <span class="fu">filter</span>(date <span class="sc">==</span> <span class="st">"2019-10-21"</span>) <span class="sc">%&gt;%</span> <span class="fu">na.omit</span>()</span>
 <span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>dt <span class="ot">&lt;-</span> dt[<span class="sc">-</span><span class="fu">c</span>(<span class="dv">12</span>, <span class="dv">10</span>, <span class="dv">11</span>, <span class="dv">17</span>, <span class="dv">28</span>, <span class="dv">31</span>, <span class="dv">29</span>, <span class="dv">4</span>, <span class="dv">1</span>),]</span>
 <span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>datos <span class="ot">&lt;-</span> <span class="fu">as.matrix</span>(<span class="fu">data.frame</span>(<span class="at">x=</span><span class="fu">as.numeric</span>(dt<span class="sc">$</span>long),</span>
@@ -469,7 +469,7 @@ W = 0.90931, p-value = 0.04583</code></pre>
     Shapiro-Wilk normality test
 
 data:  df$`Temp max`
-W = 0.94793, p-value = 0.2872</code></pre>
+W = 0.92992, p-value = 0.1222</code></pre>
 </div>
 </div>
 <p>Al realizar la misma prueba de hipótesis sobre la variable de temperatura máxima pero de otra fecha se tienen datos normales.</p>
@@ -507,9 +507,9 @@ W = 0.94793, p-value = 0.2872</code></pre>
 <span id="cb23-7"><a href="#cb23-7" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb23-8"><a href="#cb23-8" aria-hidden="true" tabindex="-1"></a><span class="fu">par</span>(<span class="at">mfrow =</span> <span class="fu">c</span>(<span class="dv">1</span>,<span class="dv">2</span>))</span>
 <span id="cb23-9"><a href="#cb23-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb23-10"><a href="#cb23-10" aria-hidden="true" tabindex="-1"></a><span class="co"># (2019-03-10) [Normal]</span></span>
+<span id="cb23-10"><a href="#cb23-10" aria-hidden="true" tabindex="-1"></a><span class="co"># (2019-10-21) [Normal]</span></span>
 <span id="cb23-11"><a href="#cb23-11" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(<span class="at">x =</span> datosmatriz1<span class="sc">$</span>distancia1, <span class="at">y =</span> datosmatriz1<span class="sc">$</span>dif.prof,</span>
-<span id="cb23-12"><a href="#cb23-12" aria-hidden="true" tabindex="-1"></a>     <span class="at">main =</span> <span class="st">"2019-03-10 (Normal)"</span>, <span class="at">ylab =</span> <span class="st">"Diferencia en temperatura"</span>,</span>
+<span id="cb23-12"><a href="#cb23-12" aria-hidden="true" tabindex="-1"></a>     <span class="at">main =</span> <span class="st">"2019-10-21 (Normal)"</span>, <span class="at">ylab =</span> <span class="st">"Diferencia en temperatura"</span>,</span>
 <span id="cb23-13"><a href="#cb23-13" aria-hidden="true" tabindex="-1"></a>     <span class="at">xlab =</span> <span class="st">"Distancia (m)"</span>)</span>
 <span id="cb23-14"><a href="#cb23-14" aria-hidden="true" tabindex="-1"></a><span class="fu">abline</span>(<span class="fu">lm</span>(dif.prof<span class="sc">~</span>distancia1, <span class="at">data =</span> datosmatriz1), <span class="at">lwd =</span> <span class="dv">2</span>,</span>
 <span id="cb23-15"><a href="#cb23-15" aria-hidden="true" tabindex="-1"></a>       <span class="at">col =</span> <span class="st">"red"</span>)</span>
@@ -545,12 +545,12 @@ Mantel statistic based on Pearson's product-moment correlation
 Call:
 mantel(xdis = distancia1, ydis = dif.temp1, na.rm = T) 
 
-Mantel statistic r: 0.06296 
-      Significance: 0.222 
+Mantel statistic r: 0.1496 
+      Significance: 0.042 
 
 Upper quantiles of permutations (null model):
   90%   95% 97.5%   99% 
-0.109 0.150 0.177 0.198 
+0.104 0.140 0.178 0.219 
 Permutation: free
 Number of permutations: 999</code></pre>
 </div>
@@ -565,14 +565,14 @@ Number of permutations: 999</code></pre>
 <pre><code>Monte-Carlo test
 Call: mantelnoneuclid(m1 = m1, m2 = m2, nrepet = nrepet)
 
-Observation: 0.06296223 
+Observation: 0.1496266 
 
 Based on 999 replicates
-Simulated p-value: 0.24 
+Simulated p-value: 0.042 
 Alternative hypothesis: greater 
 
-    Std.Obs Expectation    Variance 
-0.678696134 0.002057063 0.008052997 </code></pre>
+     Std.Obs  Expectation     Variance 
+1.8241208422 0.0002735359 0.0067037993 </code></pre>
 </div>
 </div>
 <p>Con el test de Mantel se prueba que existe autocorrelación espacial; es decir, la temperatura es similar entre unidades geográficas próximas.</p>
@@ -617,8 +617,8 @@ Alternative hypothesis: greater
  1.396905205 -0.001539747  0.005133160 </code></pre>
 </div>
 </div>
-<p>Lamentablemente, en las dos fechas no se cumple el test de mantel, por lo cual se dice que para el día 2019-01-10 existe evidencia para <strong>no</strong> autocorrelación espacial.</p>
-<p>La hipótesis de autocorrelación espacial se vio afectada por la desviación ligera de normalidad, entonces se procede a trabajar con los datos del 2019-03-10 y se analizará la temperatura máxima (si es posible también la mínima) en antioquia para la fecha seleccionada.</p>
+<p>Lamentablemente, en las dos pruebas no se cumple el test de mantel, por lo cual se dice que para el día 2019-01-10 existe evidencia para <strong>no</strong> autocorrelación espacial.</p>
+<p>La hipótesis de autocorrelación espacial se vio afectada por la desviación ligera de normalidad, entonces se procede a trabajar con los datos del 2019-10-21 y se analizará la temperatura máxima (si es posible también la mínima) en antioquia para la fecha seleccionada.</p>
 <p>Ahora se procede a extraer empíricamente la distancia máxima para los semivariogramas.</p>
 <div class="cell">
 <details open="">
@@ -704,7 +704,7 @@ Alternative hypothesis: greater
 <span id="cb44-4"><a href="#cb44-4" aria-hidden="true" tabindex="-1"></a>             <span class="at">ylim =</span> <span class="fu">c</span>(<span class="dv">0</span>,<span class="dv">70</span>))</span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output cell-output-stdout">
-<pre><code>Test of spatial independence: p =  0.164 </code></pre>
+<pre><code>Test of spatial independence: p =  0.195 </code></pre>
 </div>
 <div class="cell-output-display">
 <p><img src="trabajo_geoestadistica_files/figure-html/unnamed-chunk-22-1.png" class="img-fluid" width="672"></p>
@@ -874,12 +874,12 @@ xvalid: end of cross-validation</code></pre>
 <div class="sourceCode cell-code" id="cb60"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb60-1"><a href="#cb60-1" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(valid.krigo)</span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output cell-output-stdout">
-<pre><code>                Min.    1st Qu.      Median       Mean   3rd Qu.     Max.
-errors     -3.684257 -1.1275513 -0.18260580 0.12663424 1.6905133 3.718993
-std.errors -1.644220 -0.5242532 -0.07610748 0.02665075 0.6940602 1.519078
-                  sd
-errors     1.9718666
-std.errors 0.8537545</code></pre>
+<pre><code>                Min.    1st Qu.      Median      Mean   3rd Qu.     Max.
+errors     -3.675870 -1.0298969 -0.09482950 0.1341619 1.7769295 4.014368
+std.errors -1.796986 -0.5284779 -0.05831335 0.0314131 0.8178424 1.679985
+                 sd
+errors     2.024287
+std.errors 0.951569</code></pre>
 </div>
 </div>
 <div>
@@ -930,6 +930,13 @@ std.errors 0.8537545</code></pre>
 </div>
 </div>
 </div>
+<p>Según los resultados de la validación cruzada, se pueden sacar las siguientes conclusiones:</p>
+<ul>
+<li><p><strong>Sesgo (Mean):</strong> El sesgo promedio es de aproximadamente 0.134, lo que indica que, en promedio, el modelo de kriging ordinario tiende a sobreestimar ligeramente los valores de temperatura.</p></li>
+<li><p><strong>Error cuadrático medio (RMSE, sd):</strong> El error cuadrático medio es de aproximadamente 2.024, lo que indica la discrepancia promedio entre los valores observados y los valores predichos por el modelo. Un RMSE más bajo indica una mejor precisión del modelo.</p></li>
+<li><p><strong>Distribución de errores:</strong> Los errores en la validación cruzada varían desde -3.676 hasta 4.014. Los errores negativos indican que el modelo subestima la temperatura, mientras que los errores positivos indican sobreestimación. El rango y la desviación estándar (sd) de los errores muestran la dispersión de los errores en el conjunto de datos de validación.</p></li>
+</ul>
+<p>En general, los resultados de la validación cruzada indican que el modelo de kriging ordinario tiene cierto sesgo hacia la sobreestimación y muestra una discrepancia promedio de alrededor de 2.024 entre los valores observados y los valores predichos.</p>
 </section>
 </div>
 <div id="tabset-1-2" class="tab-pane" role="tabpanel" aria-labelledby="tabset-1-2-tab">
